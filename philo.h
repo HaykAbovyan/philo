@@ -3,6 +3,8 @@
 
 #include <stdlib.h>
 #include <pthread.h>
+#include <string.h>
+#include <unistd.h>
 
 typedef struct philo
 {
@@ -22,5 +24,6 @@ typedef struct t_args{
 	pthread_mutex_t fork[200];
 }				t_args;
 
+int	ft_atoi(const char *str);
 
 #endif 

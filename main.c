@@ -23,7 +23,7 @@ void mutexes(t_args *args)
 	
 }
 
-int to_pass_args(t_args *args, char **av)
+int to_pas_args(t_args *args, char **av)
 {
 	args->count = ft_atoi(av[1]);
 	args->time_to_die = ft_atoi(av[2]);
@@ -47,9 +47,9 @@ void *func(void *a)
 	args = (void *)a;
 	if (args->philo->id  % 2 == 0)
 		usleep(2);
-	eating(args);
-	sleeping(args);
-	thinking(args); 
+	//eating(args);
+	//sleeping(args);
+	//thinking(args); 
 }
 
 void start(t_args *args)
@@ -57,7 +57,7 @@ void start(t_args *args)
 	int i;
 	i = args->count;
 	while (--i >= 0)
-		pthread_create(args->philo[i].th, NULL, func, args);
+		pthread_create(&args->philo[i].th, NULL, func, args);
 	i = args->count;
 
 	
