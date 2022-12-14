@@ -6,6 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <sys/time.h>
 
 
 struct s_args;
@@ -24,17 +25,22 @@ typedef struct philo
 typedef struct s_args
 {
 	int				count;
-	int				time_to_die; // miliseconds
+	int				time_to_die; //will make all these three in microseconds later(* 1000)
 	int				time_to_eat;
 	int				time_to_sleep;
 	int				must_eat_num;
 	int				if_all_ate_must_eat_time;
 	int				smone_died;
+	long long		time_start;
 	philo			philo[200];
 	pthread_mutex_t fork[200];
 	pthread_mutex_t eating;
 	pthread_mutex_t printf;
+	pthread_mutex_t usleep;
+
+
 }				t_args;
+
 
 int	ft_atoi(const char *str);
 

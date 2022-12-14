@@ -1,6 +1,14 @@
 #include "philo.h"
 
 
+int timestamp()
+{
+	struct timeval t;
+
+	gettimeofday(&t, NULL);
+	return (t.tv_sec * 1000 + t.tv_usec / 1000);
+}
+
 void philosophers(t_args *args)
 {
 	int	i;
@@ -30,46 +38,69 @@ int mutexes(t_args *args)
 			return (1);
 	if ((pthread_mutex_init(&args->printf, NULL)) != 0)
 			return (1);
+	if ((pthread_mutex_init(&args->usleep, NULL)) != 0)
+			return (1);
 	return (0);
 }
 
 int to_pas_args(t_args *args, char **av)
 {
 	args->count = ft_atoi(av[1]);
-	args->time_to_die = ft_atoi(av[2]);
-	args->time_to_eat = ft_atoi(av[3]);
-	args->time_to_sleep = ft_atoi(av[4]);
+	args->time_to_die = ft_atoi(av[2]) * 1000;
+	args->time_to_eat = ft_atoi(av[3]) * 1000;
+	args->time_to_sleep = ft_atoi(av[4]) * 1000;
 	args->if_all_ate_must_eat_time = 0;
 	args->smone_died = 0;
 	if (args->count < 2 ||args->time_to_die < 0 ||
-	args->time_to_eat < 0 || args->time_to_sleep < 0 ||
-	args->must_eat_num <= 0)
-		return (1);
+	args->time_to_eat < 0 || args->time_to_sleep < 0)
+		return (printf("Error1"), 1);
 	if (av[5])
 	{
 		args->must_eat_num = ft_atoi(av[5]);
 		if (args->must_eat_num <= 0)
-			return (1);
+			return (printf("Error2"), 1);
 	}
 	else
 		args->must_eat_num = -1;
-	philosophers(args);
+	philosophers(args); 
 	if (mutexes(args))
-		return (1);
+		return (printf("Error3"), 1);
 	return (0);
+}
+
+void mutexing_and_printing(philo *Philo, char *str)
+{
+	int tmp;
+
+	tmp = 0;
+	if (str[0] == 'l')
+		tmp = Philo->left_fork;
+	else if (str[0] == 'r')
+		tmp = Philo->right_fork;
+	pthread_mutex_lock(&Philo->args->printf);
+	printf("%d has taken a %s, which id is %d\n", Philo->id + 1, str, tmp + 1);
+	pthread_mutex_unlock(&Philo->args->printf);
 }
 
 void eating(philo *Philo)
 {
 	t_args *args;
 	args = Philo->args;
+	//eating
 	pthread_mutex_lock(&args->fork[Philo->left_fork]);
-	function_to_print();
+	mutexing_and_printing(Philo, "left fork");
+	pthread_mutex_lock(&args->fork[Philo->right_fork]);
+	mutexing_and_printing(Philo, "right fork");
+	pthread_mutex_lock(&Philo->args->printf);
+	printf("%lld %d is eating\n", timestamp() - Philo->args->time_start, Philo->id + 1);
+	pthread_mutex_unlock(&Philo->args->printf);
+	//pthread_mutex_lock(&Philo->args->usleep);
+	//usleep(Philo->args->time_to_eat);
+	//pthread_mutex_unlock(&Philo->args->usleep);
+	Philo->count_of_eating++;
 	pthread_mutex_unlock(&args->fork[Philo->right_fork]);
-	funcion_to_print();
-
-
-
+	pthread_mutex_unlock(&args->fork[Philo->left_fork]);
+	//end of eating
 }
 
 void *function(void *temp)
@@ -77,28 +108,37 @@ void *function(void *temp)
 	philo *Philo;
 	Philo = (philo *)temp;
 	if (Philo->id % 2)
-		usleep(2000);
-	while (1)
-	{
+		usleep(15000);
+	// while (1)
+	// {
 		eating(Philo);
-	}
+	// }
+	// pthread_mutex_lock(&Philo->args->eating);
+	// printf("my id is %d and my left fork is %d amd left fork is %d", Philo->id, Philo->left_fork, Philo->right_fork);
+	// pthread_mutex_unlock(&Philo->args->eating);
 	
 }
 
-void start(t_args *args)
+int start(t_args *args)
 {
 	int		i;
 	philo	*philo;
 
 	philo = args->philo;
-	i = args->count;
-	while (--i >= 0)
+	i = -1;
+	args->time_start = timestamp();
+	while (++i < args->count)
 	{
 		if(pthread_create(&philo[i].th, NULL, &function, &philo[i]))
 			return (1);
-		
 	}
-
+	i = -1;
+	while (++i < args->count)
+	{
+		if (pthread_join(philo[i].th, NULL))
+			return (1);
+	}
+	return (0);
 }
 
 int main(int ac, char **av)
@@ -108,10 +148,11 @@ int main(int ac, char **av)
 	if (ac == 5 || ac == 6 )
 	{
 		if (to_pas_args(&args, av))
-			return (printf("Error\n"), 0);
-		start(&args);
+			return (printf("Error1\n"), 0);
+		if (start(&args))
+			return (printf("Error2\n"), 0);
 	}
 	else
-		printf("Error\n");
+		printf("Error3\n");
 	return (0);
 }
