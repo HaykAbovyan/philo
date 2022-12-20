@@ -1,12 +1,33 @@
 #include "philo.h"
 
 
-int timestamp()
+int timestamp_in_micro()
+{
+	struct timeval t;
+
+	gettimeofday(&t, NULL);
+	return (t.tv_sec * 1000000 + t.tv_usec);
+}
+
+
+int timestamp_in_mili()
 {
 	struct timeval t;
 
 	gettimeofday(&t, NULL);
 	return (t.tv_sec * 1000 + t.tv_usec / 1000);
+}
+
+void ft_usleep(int x)
+{
+	long long int time;
+
+	time = timestamp_in_micro();
+	while(1)
+	{
+		if(timestamp_in_micro() - time >= x)
+			break;
+	}
 }
 
 void philosophers(t_args *args)
@@ -34,11 +55,7 @@ int mutexes(t_args *args)
 		if ((pthread_mutex_init(&args->fork[i], NULL)) != 0)
 			return (1);
 	}
-	if ((pthread_mutex_init(&args->eating, NULL)) != 0)
-			return (1);
 	if ((pthread_mutex_init(&args->printf, NULL)) != 0)
-			return (1);
-	if ((pthread_mutex_init(&args->usleep, NULL)) != 0)
 			return (1);
 	return (0);
 }
@@ -70,15 +87,8 @@ int to_pas_args(t_args *args, char **av)
 
 void mutexing_and_printing(philo *Philo, char *str)
 {
-	int tmp;
-
-	tmp = 0;
-	if (str[0] == 'l')
-		tmp = Philo->left_fork;
-	else if (str[0] == 'r')
-		tmp = Philo->right_fork;
 	pthread_mutex_lock(&Philo->args->printf);
-	printf("%d has taken a %s, which id is %d\n", Philo->id + 1, str, tmp + 1);
+	printf("%lld %d %s\n",timestamp_in_mili() - Philo->args->time_start, Philo->id + 1, str);
 	pthread_mutex_unlock(&Philo->args->printf);
 }
 
@@ -86,21 +96,23 @@ void eating(philo *Philo)
 {
 	t_args *args;
 	args = Philo->args;
-	//eating
+
 	pthread_mutex_lock(&args->fork[Philo->left_fork]);
-	mutexing_and_printing(Philo, "left fork");
+	mutexing_and_printing(Philo, "has taken a fork");
 	pthread_mutex_lock(&args->fork[Philo->right_fork]);
-	mutexing_and_printing(Philo, "right fork");
-	pthread_mutex_lock(&Philo->args->printf);
-	printf("%lld %d is eating\n", timestamp() - Philo->args->time_start, Philo->id + 1);
-	pthread_mutex_unlock(&Philo->args->printf);
-	//pthread_mutex_lock(&Philo->args->usleep);
-	//usleep(Philo->args->time_to_eat);
-	//pthread_mutex_unlock(&Philo->args->usleep);
+	mutexing_and_printing(Philo, "has taken a fork");
+	mutexing_and_printing(Philo, "is eating");
+	ft_usleep(args->time_to_eat);
+	Philo->time_of_last_eating = timestamp_in_mili() - args->time_start;
 	Philo->count_of_eating++;
 	pthread_mutex_unlock(&args->fork[Philo->right_fork]);
 	pthread_mutex_unlock(&args->fork[Philo->left_fork]);
-	//end of eating
+}
+
+void sleeping(philo *Philo)
+{
+	mutexing_and_printing(Philo, "is sleeping");
+	ft_usleep(Philo->args->time_to_sleep);
 }
 
 void *function(void *temp)
@@ -109,15 +121,63 @@ void *function(void *temp)
 	Philo = (philo *)temp;
 	if (Philo->id % 2)
 		usleep(15000);
-	// while (1)
-	// {
+	while (!(Philo->args->smone_died))
+	{
 		eating(Philo);
-	// }
-	// pthread_mutex_lock(&Philo->args->eating);
-	// printf("my id is %d and my left fork is %d amd left fork is %d", Philo->id, Philo->left_fork, Philo->right_fork);
-	// pthread_mutex_unlock(&Philo->args->eating);
-	
+		sleeping(Philo);
+		mutexing_and_printing(Philo, "is thinking");
+	}
+	return (NULL);
 }
+
+int mutex_destroy(t_args *args)
+{
+	int i;
+	i = -1;
+	while (++i < args->count)
+	{
+		if (pthread_mutex_destroy(&args->fork[i]))
+			return (1);
+	}
+	if (pthread_mutex_destroy(&args->printf))
+		return (1);	
+	return (0);
+}
+
+int joining(t_args *args, philo *philo)
+{
+	int i;
+
+	i = -1;
+	while (++i < args->count)
+	{
+		if (pthread_join(philo[i].th, NULL))
+			return (1);
+	}
+	return (0);
+}
+void is_died(philo *philo)
+{
+	int i;
+	t_args *args;
+
+	args = philo->args;
+	printf("here\n");
+	i = -1;
+	while (1)
+	{
+		while (++i < args->count)
+		{
+			if (philo[i].time_of_last_eating >= args->time_to_die)
+			{
+				mutexing_and_printing(philo, "died");
+				return ;
+			}
+		}
+	}
+	return ;
+}
+
 
 int start(t_args *args)
 {
@@ -126,18 +186,17 @@ int start(t_args *args)
 
 	philo = args->philo;
 	i = -1;
-	args->time_start = timestamp();
+	args->time_start = timestamp_in_mili();
 	while (++i < args->count)
 	{
 		if(pthread_create(&philo[i].th, NULL, &function, &philo[i]))
 			return (1);
 	}
-	i = -1;
-	while (++i < args->count)
-	{
-		if (pthread_join(philo[i].th, NULL))
-			return (1);
-	}
+	is_died(philo);
+	if (joining(args, philo))
+		return (1);
+	if (mutex_destroy(args))
+		return (1);
 	return (0);
 }
 

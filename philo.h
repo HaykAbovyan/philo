@@ -20,6 +20,7 @@ typedef struct philo
 	long long int 	time_of_last_eating;
 	pthread_t		th;
 	struct s_args	*args;
+	int				test;
 }				philo;
 
 typedef struct s_args
@@ -34,10 +35,8 @@ typedef struct s_args
 	long long		time_start;
 	philo			philo[200];
 	pthread_mutex_t fork[200];
-	pthread_mutex_t eating;
 	pthread_mutex_t printf;
-	pthread_mutex_t usleep;
-
+	pthread_mutex_t meal;
 
 }				t_args;
 
