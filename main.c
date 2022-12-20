@@ -1,16 +1,12 @@
 #include "philo.h"
 
 
-int timestamp_in_micro()
+long long diff(long long past, long long now)
 {
-	struct timeval t;
-
-	gettimeofday(&t, NULL);
-	return (t.tv_sec * 1000000 + t.tv_usec);
+	return (past - now);
 }
 
-
-int timestamp_in_mili()
+int timestamp()
 {
 	struct timeval t;
 
@@ -18,14 +14,15 @@ int timestamp_in_mili()
 	return (t.tv_sec * 1000 + t.tv_usec / 1000);
 }
 
-void ft_usleep(int x)
+void ft_usleep(long long x, t_args *args)
 {
-	long long int time;
+	long long time;
 
-	time = timestamp_in_micro();
-	while(1)
+	time = timestamp();
+	while(!(args->smone_died))
+	// while(1)
 	{
-		if(timestamp_in_micro() - time >= x)
+		if(diff(timestamp(), time) >= x)
 			break;
 	}
 }
@@ -63,9 +60,9 @@ int mutexes(t_args *args)
 int to_pas_args(t_args *args, char **av)
 {
 	args->count = ft_atoi(av[1]);
-	args->time_to_die = ft_atoi(av[2]) * 1000;
-	args->time_to_eat = ft_atoi(av[3]) * 1000;
-	args->time_to_sleep = ft_atoi(av[4]) * 1000;
+	args->time_to_die = ft_atoi(av[2]);
+	args->time_to_eat = ft_atoi(av[3]);
+	args->time_to_sleep = ft_atoi(av[4]);
 	args->if_all_ate_must_eat_time = 0;
 	args->smone_died = 0;
 	if (args->count < 2 ||args->time_to_die < 0 ||
@@ -87,23 +84,30 @@ int to_pas_args(t_args *args, char **av)
 
 void mutexing_and_printing(philo *Philo, char *str)
 {
+	t_args *args;
+	args = Philo->args;
 	pthread_mutex_lock(&Philo->args->printf);
-	printf("%lld %d %s\n",timestamp_in_mili() - Philo->args->time_start, Philo->id + 1, str);
+	if (!(args->smone_died))
+		printf("%lld %d %s\n",timestamp() - args->time_start, Philo->id + 1, str);
 	pthread_mutex_unlock(&Philo->args->printf);
 }
 
 void eating(philo *Philo)
 {
 	t_args *args;
-	args = Philo->args;
 
+	args = Philo->args;
 	pthread_mutex_lock(&args->fork[Philo->left_fork]);
 	mutexing_and_printing(Philo, "has taken a fork");
 	pthread_mutex_lock(&args->fork[Philo->right_fork]);
 	mutexing_and_printing(Philo, "has taken a fork");
+	//
+	pthread_mutex_lock(&args->meal);
 	mutexing_and_printing(Philo, "is eating");
-	ft_usleep(args->time_to_eat);
-	Philo->time_of_last_eating = timestamp_in_mili() - args->time_start;
+	Philo->time_of_last_eating = timestamp();
+	pthread_mutex_unlock(&args->meal);
+	//
+	ft_usleep(args->time_to_eat, args);
 	Philo->count_of_eating++;
 	pthread_mutex_unlock(&args->fork[Philo->right_fork]);
 	pthread_mutex_unlock(&args->fork[Philo->left_fork]);
@@ -111,71 +115,71 @@ void eating(philo *Philo)
 
 void sleeping(philo *Philo)
 {
+	t_args *args;
+	args = Philo->args;
 	mutexing_and_printing(Philo, "is sleeping");
-	ft_usleep(Philo->args->time_to_sleep);
+	ft_usleep(Philo->args->time_to_sleep, args);
 }
 
 void *function(void *temp)
 {
 	philo *Philo;
+	t_args *args;
 	Philo = (philo *)temp;
+	args = Philo->args;
 	if (Philo->id % 2)
 		usleep(15000);
-	while (!(Philo->args->smone_died))
+	while (!(args->smone_died))
 	{
 		eating(Philo);
+		if (args->if_all_ate_must_eat_time)
+			break ;
 		sleeping(Philo);
 		mutexing_and_printing(Philo, "is thinking");
 	}
 	return (NULL);
 }
 
-int mutex_destroy(t_args *args)
-{
-	int i;
-	i = -1;
-	while (++i < args->count)
-	{
-		if (pthread_mutex_destroy(&args->fork[i]))
-			return (1);
-	}
-	if (pthread_mutex_destroy(&args->printf))
-		return (1);	
-	return (0);
-}
 
-int joining(t_args *args, philo *philo)
+void joining_and_mutex_destroying(t_args *args, philo *philo)
 {
 	int i;
 
 	i = -1;
 	while (++i < args->count)
-	{
-		if (pthread_join(philo[i].th, NULL))
-			return (1);
-	}
-	return (0);
+		pthread_join(philo[i].th, NULL);
+	i = -1;
+	while (++i < args->count)
+		pthread_mutex_destroy(&(args->fork[i]));
+	pthread_mutex_destroy(&(args->printf));
+	pthread_mutex_destroy(&(args->meal));
+
 }
-void is_died(philo *philo)
+
+
+void	is_died(t_args *r, philo *p)
 {
 	int i;
-	t_args *args;
-
-	args = philo->args;
-	printf("here\n");
-	i = -1;
-	while (1)
+	
+	while (!(r->if_all_ate_must_eat_time) )
 	{
-		while (++i < args->count)
+		i = -1;
+		while (++i < r->count && !(r->smone_died))
 		{
-			if (philo[i].time_of_last_eating >= args->time_to_die)
-			{
-				mutexing_and_printing(philo, "died");
-				return ;
-			}
+			if (diff(timestamp(), p[i].time_of_last_eating) > r->time_to_die)
+			{		
+				mutexing_and_printing(p, "died");
+				r->smone_died = 1;
+			}			
 		}
+		if (r->smone_died)
+			break ;
+		i = 0;
+		while (r->must_eat_num != -1 && i < r->count && p[i].count_of_eating >= r->must_eat_num)
+			i++;
+		if (i == r->count)
+			r->if_all_ate_must_eat_time = 1;
 	}
-	return ;
 }
 
 
@@ -186,17 +190,15 @@ int start(t_args *args)
 
 	philo = args->philo;
 	i = -1;
-	args->time_start = timestamp_in_mili();
+	args->time_start = timestamp();
 	while (++i < args->count)
 	{
 		if(pthread_create(&philo[i].th, NULL, &function, &philo[i]))
 			return (1);
+		philo[i].time_of_last_eating = timestamp();
 	}
-	is_died(philo);
-	if (joining(args, philo))
-		return (1);
-	if (mutex_destroy(args))
-		return (1);
+	is_died(args, philo);
+	joining_and_mutex_destroying(args, philo);
 	return (0);
 }
 
