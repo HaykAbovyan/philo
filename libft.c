@@ -6,7 +6,7 @@
 /*   By: habovyan <habovyan@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/17 17:38:02 by habovyan          #+#    #+#             */
-/*   Updated: 2022/12/14 16:28:46 by habovyan         ###   ########.fr       */
+/*   Updated: 2022/12/22 16:16:38 by habovyan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,8 +18,6 @@ int	ft_atoi(const char *str)
 	int	i;
 	int	num;
 
-	if (!strncmp(str, "-214783648", 10))
-		return (-2147483648);
 	i = 0;
 	neg = 1;
 	num = 0;
