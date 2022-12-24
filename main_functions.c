@@ -6,7 +6,7 @@
 /*   By: habovyan <habovyan@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/12/22 16:23:42 by habovyan          #+#    #+#             */
-/*   Updated: 2022/12/24 11:46:39 by habovyan         ###   ########.fr       */
+/*   Updated: 2022/12/24 15:28:01 by habovyan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,9 +14,11 @@
 
 void	*function(void *temp)
 {
+	int		i;
 	t_philo	*philo;
 	t_args	*args;
 
+	i = 0;
 	philo = (t_philo *)temp;
 	args = philo->args;
 	if (philo->id % 2)
@@ -27,7 +29,8 @@ void	*function(void *temp)
 		if (args->if_all_ate_must_eat_time)
 			break ;
 		sleeping(philo);
-		mutexing_and_printing(philo, "is thinking");
+		mutexing_and_printing(args, philo->id, "is thinking");
+		i++;
 	}
 	return (NULL);
 }
@@ -38,10 +41,11 @@ void	joining_and_mutex_destroying(t_args *args)
 
 	i = 0;
 	while (++i < args->count)
-		pthread_detach((args->philo[i].th));
+		pthread_join(args->philo[i].th, NULL);
 	i = -1;
 	while (++i < args->count)
 		pthread_mutex_destroy(&(args->fork[i]));
+	pthread_mutex_destroy(&args->printf);
 }
 
 void	is_died(t_args *r, t_philo *p)
@@ -53,13 +57,15 @@ void	is_died(t_args *r, t_philo *p)
 		i = -1;
 		while (++i < r->count && !(r->smone_died))
 		{
-			if (r->current_time - p[i].time_of_last_eating > r->time_to_die)
+			pthread_mutex_lock(&r->meal);
+			if (time_diff(p[i].t_last_meal, timestamp()) > r->time_to_die)
 			{
-				mutexing_and_printing(p, "died");
+				mutexing_and_printing(r, p->id, "died");
 				r->smone_died = 1;
 			}
+			pthread_mutex_unlock(&r->meal);
+			usleep(100);
 		}
-		r->current_time = timestamp();
 		if (r->smone_died)
 			break ;
 		i = 0;
@@ -77,13 +83,14 @@ int	start(t_args *args)
 	t_philo	*philo;
 
 	philo = args->philo;
-	i = -1;
-	args->time_start = args->current_time;
-	while (++i < args->count)
+	i = 0;
+	args->time_start = timestamp();
+	while (i < args->count)
 	{
-		philo[i].time_of_last_eating = args->current_time;
 		if (pthread_create(&philo[i].th, NULL, &function, &philo[i]))
 			return (1);
+		philo[i].t_last_meal = timestamp();
+		i++;
 	}
 	is_died(args, philo);
 	joining_and_mutex_destroying(args);

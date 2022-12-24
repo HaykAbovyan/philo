@@ -6,11 +6,16 @@
 /*   By: habovyan <habovyan@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/12/22 16:21:01 by habovyan          #+#    #+#             */
-/*   Updated: 2022/12/22 18:07:29 by habovyan         ###   ########.fr       */
+/*   Updated: 2022/12/24 15:31:21 by habovyan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
+
+long long	time_diff(long long past, long long pres)
+{
+	return (pres - past);
+}
 
 int	timestamp(void)
 {
@@ -24,27 +29,24 @@ void	ft_usleep(long long x, t_args *args)
 {
 	long long	time;
 
-	time = args->current_time;
+	time = timestamp();
 	while (!(args->smone_died) && !(args->if_all_ate_must_eat_time))
 	{
-		if (args->current_time - time >= x)
+		if (time_diff(time, timestamp()) >= x)
 			break ;
+		usleep(50);
 	}
 }
 
-void	mutexing_and_printing(t_philo *Philo, char *str)
+void	mutexing_and_printing(t_args *args, int id, char *str)
 {
-	t_args	*args;
-
-	args = Philo->args;
-	pthread_mutex_lock(&Philo->args->printf);
-	if (*str != 'd' && !(args->if_all_ate_must_eat_time))
+	pthread_mutex_lock(&args->printf);
+	if (!(args->smone_died))
 	{
-		printf("%lld %d %s\n", *Philo->current_time
-			- args->time_start, Philo->id + 1, str);
-		pthread_mutex_unlock(&Philo->args->printf);
+		printf("%lli ", timestamp() - args->time_start);
+		printf("%i ", id + 1);
+		printf("%s\n", str);
 	}
-	else
-		printf("%lld %d %s\n", *Philo->current_time
-			- args->time_start, Philo->id + 1, str);
+	pthread_mutex_unlock(&args->printf);
+	return ;
 }

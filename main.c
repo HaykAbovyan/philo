@@ -6,7 +6,7 @@
 /*   By: habovyan <habovyan@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/12/22 16:15:24 by habovyan          #+#    #+#             */
-/*   Updated: 2022/12/22 17:39:20 by habovyan         ###   ########.fr       */
+/*   Updated: 2022/12/24 15:51:02 by habovyan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,6 +46,6 @@ int	main(int ac, char **av)
 			return (printf("error\n"), 0);
 	}
 	else
-		printf("Error3\n");
+		printf("error\n");
 	return (0);
 }
