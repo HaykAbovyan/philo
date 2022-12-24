@@ -6,7 +6,7 @@
 /*   By: habovyan <habovyan@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/12/22 16:16:55 by habovyan          #+#    #+#             */
-/*   Updated: 2022/12/22 18:01:59 by habovyan         ###   ########.fr       */
+/*   Updated: 2022/12/24 11:47:09 by habovyan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,8 +40,6 @@ int	mutexes(t_args *args)
 			return (1);
 	}
 	if ((pthread_mutex_init(&args->printf, NULL)) != 0)
-		return (1);
-	if ((pthread_mutex_init(&args->meal, NULL)) != 0)
 		return (1);
 	return (0);
 }

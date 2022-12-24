@@ -6,7 +6,7 @@
 /*   By: habovyan <habovyan@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/12/22 16:23:42 by habovyan          #+#    #+#             */
-/*   Updated: 2022/12/22 18:05:23 by habovyan         ###   ########.fr       */
+/*   Updated: 2022/12/24 11:46:39 by habovyan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,12 +50,6 @@ void	is_died(t_args *r, t_philo *p)
 
 	while (!(r->if_all_ate_must_eat_time))
 	{
-		i = 0;
-		while (r->must_eat_num != -1 && i < r->count
-			&& p[i].count_of_eating >= r->must_eat_num)
-			i++;
-		if (i == r->count)
-			r->if_all_ate_must_eat_time = 1;
 		i = -1;
 		while (++i < r->count && !(r->smone_died))
 		{
@@ -68,6 +62,12 @@ void	is_died(t_args *r, t_philo *p)
 		r->current_time = timestamp();
 		if (r->smone_died)
 			break ;
+		i = 0;
+		while (r->must_eat_num != -1 && i < r->count
+			&& p[i].count_of_eating >= r->must_eat_num)
+			i++;
+		if (i == r->count)
+			r->if_all_ate_must_eat_time = 1;
 	}
 }
 

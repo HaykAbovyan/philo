@@ -6,7 +6,7 @@
 /*   By: habovyan <habovyan@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/12/22 16:18:19 by habovyan          #+#    #+#             */
-/*   Updated: 2022/12/22 18:00:44 by habovyan         ###   ########.fr       */
+/*   Updated: 2022/12/24 11:47:14 by habovyan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,8 +48,6 @@ typedef struct s_args
 	t_philo			philo[200];
 	pthread_mutex_t	fork[200];
 	pthread_mutex_t	printf;
-	pthread_mutex_t	meal;
-
 }				t_args;
 
 int		ft_atoi(const char *str);
